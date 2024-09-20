@@ -36,15 +36,27 @@ const Popover: FC<PopoverProps> = ({
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  const updatePopoverPosition = () => {
     if (isShown && triggerRef.current && contentRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const popoverRect = contentRef.current.getBoundingClientRect();
-      setCoords(getPopoverCoords(triggerRect, popoverRect, position));
+      let calculatedCoords = getPopoverCoords(triggerRect, popoverRect, position);
+      calculatedCoords = adjustPopoverPosition(calculatedCoords, popoverRect);
+      setCoords(calculatedCoords);
     }
-  }, [isShown, position, dialogRoot]);
+  };
 
-  // Effect to handle clicks outside the popover
+  useEffect(() => {
+    if (isShown) {
+      updatePopoverPosition();
+      window.addEventListener('scroll', updatePopoverPosition, true);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePopoverPosition);
+    };
+  }, [isShown, position, dialogRoot, triggerRef.current, contentRef.current]);
+
   useEffect(() => {
     if (action !== 'click') return;
     const handleClickOutside = (event: MouseEvent) => {
@@ -138,4 +150,23 @@ const getPopoverCoords = (triggerRect: DOMRect, popoverRect: DOMRect, position: 
   }
 
   return coords;
+};
+
+const adjustPopoverPosition = (coords: { top: number; left: number }, popoverRect: DOMRect) => {
+  const adjustedCoords = { ...coords };
+  // Adjust if the popover is position not good
+  if (coords.left < 0) {
+    adjustedCoords.left = 0;
+  }
+  if (coords.left + popoverRect.width > window.innerWidth) {
+    adjustedCoords.left = window.innerWidth - popoverRect.width;
+  }
+  if (coords.top < 0) {
+    adjustedCoords.top = 0;
+  }
+  if (coords.top + popoverRect.height > window.innerHeight) {
+    adjustedCoords.top = window.innerHeight - popoverRect.height;
+  }
+
+  return adjustedCoords;
 };
