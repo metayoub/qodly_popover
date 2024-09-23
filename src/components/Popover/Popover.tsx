@@ -32,7 +32,7 @@ const Popover: FC<PopoverProps> = ({
     left: 0,
     top: 0,
   });
-
+  const [display, setDisplay] = useState<string>('hidden');
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
@@ -43,6 +43,17 @@ const Popover: FC<PopoverProps> = ({
       let calculatedCoords = getPopoverCoords(triggerRect, popoverRect, position);
       calculatedCoords = adjustPopoverPosition(calculatedCoords, popoverRect);
       setCoords(calculatedCoords);
+    }
+
+    if (triggerRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+
+      // Check if the trigger is out of view (above or below viewport)
+      if (triggerRect.top < 0 || triggerRect.bottom > window.innerHeight) {
+        setDisplay('hidden'); //out of view
+      } else {
+        setDisplay('block'); //in view
+      }
     }
   };
 
@@ -96,7 +107,7 @@ const Popover: FC<PopoverProps> = ({
           <div
             onMouseLeave={() => action === 'hover' && handleToggle(false)}
             ref={contentRef}
-            className={`popover-content fixed ${position}`}
+            className={`popover-content fixed ${display} ${position}`}
             style={{ ...coords, minWidth: '48px' }}
           >
             {children}
