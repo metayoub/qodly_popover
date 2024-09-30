@@ -36,6 +36,7 @@ const Popover: FC<PopoverProps> = ({
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
+  let qodlyCanva: any = document.getElementsByClassName('fd-canvas')[0];
   const updatePopoverPosition = () => {
     if (isShown && triggerRef.current && contentRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
@@ -47,7 +48,6 @@ const Popover: FC<PopoverProps> = ({
 
     if (triggerRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
-
       // Check if the trigger is out of view (above or below viewport)
       if (triggerRect.top < 0 || triggerRect.bottom > window.innerHeight) {
         setDisplay('hidden'); //out of view
@@ -57,14 +57,41 @@ const Popover: FC<PopoverProps> = ({
     }
   };
 
+  //fix bug change webform display => dialog position not updated
+  useEffect(() => {
+    const observer = new MutationObserver((mutationRecords) => {
+      mutationRecords.forEach((mutation) => {
+        if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
+          updatePopoverPosition(); // Update the popover position when style or class changes
+        }
+      });
+    });
+
+    if (qodlyCanva) {
+      observer.observe(qodlyCanva, {
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+        childList: true,
+      });
+    }
+
+    return () => {
+      if (qodlyCanva) {
+        observer.disconnect();
+      }
+    };
+  }, [qodlyCanva]);
+
   useEffect(() => {
     if (isShown) {
       updatePopoverPosition();
       window.addEventListener('scroll', updatePopoverPosition, true);
+      window.addEventListener('resize', updatePopoverPosition);
     }
 
     return () => {
       window.removeEventListener('scroll', updatePopoverPosition);
+      window.removeEventListener('resize', updatePopoverPosition);
     };
   }, [isShown, position, dialogRoot, triggerRef.current, contentRef.current]);
 
