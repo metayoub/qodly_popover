@@ -32,19 +32,69 @@ const Popover: FC<PopoverProps> = ({
     left: 0,
     top: 0,
   });
-
+  const [display, setDisplay] = useState<string>('hidden');
   const triggerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
+  let qodlyCanva: any = document.getElementsByClassName('fd-canvas')[0];
+  const updatePopoverPosition = () => {
     if (isShown && triggerRef.current && contentRef.current) {
       const triggerRect = triggerRef.current.getBoundingClientRect();
       const popoverRect = contentRef.current.getBoundingClientRect();
-      setCoords(getPopoverCoords(triggerRect, popoverRect, position));
+      let calculatedCoords = getPopoverCoords(triggerRect, popoverRect, position);
+      calculatedCoords = adjustPopoverPosition(calculatedCoords, popoverRect);
+      setCoords(calculatedCoords);
     }
-  }, [isShown, position, dialogRoot]);
 
-  // Effect to handle clicks outside the popover
+    if (triggerRef.current) {
+      const triggerRect = triggerRef.current.getBoundingClientRect();
+      // Check if the trigger is out of view (above or below viewport)
+      if (triggerRect.top < 0 || triggerRect.bottom > window.innerHeight) {
+        setDisplay('hidden'); //out of view
+      } else {
+        setDisplay('block'); //in view
+      }
+    }
+  };
+
+  //fix bug change webform display => dialog position not updated
+  useEffect(() => {
+    const observer = new MutationObserver((mutationRecords) => {
+      mutationRecords.forEach((mutation) => {
+        if (mutation.attributeName === 'style' || mutation.attributeName === 'class') {
+          updatePopoverPosition(); // Update the popover position when style or class changes
+        }
+      });
+    });
+
+    if (qodlyCanva) {
+      observer.observe(qodlyCanva, {
+        attributes: true,
+        attributeFilter: ['style', 'class'],
+        childList: true,
+      });
+    }
+
+    return () => {
+      if (qodlyCanva) {
+        observer.disconnect();
+      }
+    };
+  }, [qodlyCanva]);
+
+  useEffect(() => {
+    if (isShown) {
+      updatePopoverPosition();
+      window.addEventListener('scroll', updatePopoverPosition, true);
+      window.addEventListener('resize', updatePopoverPosition);
+    }
+
+    return () => {
+      window.removeEventListener('scroll', updatePopoverPosition);
+      window.removeEventListener('resize', updatePopoverPosition);
+    };
+  }, [isShown, position, dialogRoot, triggerRef.current, contentRef.current]);
+
   useEffect(() => {
     if (action !== 'click') return;
     const handleClickOutside = (event: MouseEvent) => {
@@ -84,7 +134,7 @@ const Popover: FC<PopoverProps> = ({
           <div
             onMouseLeave={() => action === 'hover' && handleToggle(false)}
             ref={contentRef}
-            className={`popover-content fixed ${position} z-10 bg-white`}
+            className={`popover-content fixed ${display} ${position}`}
             style={{ ...coords, minWidth: '48px' }}
           >
             {children}
@@ -138,4 +188,23 @@ const getPopoverCoords = (triggerRect: DOMRect, popoverRect: DOMRect, position: 
   }
 
   return coords;
+};
+
+const adjustPopoverPosition = (coords: { top: number; left: number }, popoverRect: DOMRect) => {
+  const adjustedCoords = { ...coords };
+  // Adjust if the popover is position not good
+  if (coords.left < 0) {
+    adjustedCoords.left = 0;
+  }
+  if (coords.left + popoverRect.width > window.innerWidth) {
+    adjustedCoords.left = window.innerWidth - popoverRect.width;
+  }
+  if (coords.top < 0) {
+    adjustedCoords.top = 0;
+  }
+  if (coords.top + popoverRect.height > window.innerHeight) {
+    adjustedCoords.top = window.innerHeight - popoverRect.height;
+  }
+
+  return adjustedCoords;
 };
