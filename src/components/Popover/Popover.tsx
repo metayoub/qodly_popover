@@ -134,7 +134,7 @@ const Popover: FC<PopoverProps> = ({
           <div
             onMouseLeave={() => action === 'hover' && handleToggle(false)}
             ref={contentRef}
-            className={`popover-content fixed ${display} ${position}`}
+            className={`popover-content fixed ${display} ${position} z-10`}
             style={{ ...coords, minWidth: '48px' }}
           >
             {children}
