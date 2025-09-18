@@ -44,7 +44,10 @@ const Popover: FC<IPopoverProps> = ({ position, isShown, style, className, class
           id="PopoverContent"
           is={resolver.StyleBox}
           canvas
-          style={{ boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px' }}
+          style={{
+            boxShadow: 'rgba(0, 0, 0, 0.35) 0px 5px 15px',
+            backgroundColor: 'white',
+          }}
         >
           <Element
             is={resolver.Text}
